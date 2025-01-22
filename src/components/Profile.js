@@ -1,11 +1,11 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 
 function Profile() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formdata,setformdata]=useState({username:'',password:'',newpassword:'',cnewpassword:''});
   const [profilePic, setProfilePic] = useState(null);
+  const [err,seterr]=useState('');
+  const [confirmation,setconfirmation]=useState('');
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -14,14 +14,31 @@ function Profile() {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handlechange=(e)=>{
+    const {name,value}=e.target;
+    setformdata({...formdata,[name]:value});
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-   //backend shubham
-    console.log('Profile updated', { username, password, newPassword, confirmPassword, profilePic });
+  
+    try {
+      const response = await axios.post('/editprofile', formdata); // Send formdata directly
+      if (response.status === 200) {
+        setconfirmation('Profile updated successfully');
+        seterr('');
+        setformdata({ username: '', password: '', newpassword: '', cnewpassword: '' });
+      }
+    } catch (error) {
+      seterr(error.response?.data?.message || "An error occurred");
+      setconfirmation('')
+      setformdata({ username: '', password: '', newpassword: '', cnewpassword: '' });
+    }
   };
+  
 
   return (
-    <div className="max-w-lg mx-auto p-4 bg-white rounded-lg shadow-md">
+    <form className="max-w-lg mx-auto p-4 bg-white rounded-lg shadow-md" onSubmit={handleSubmit}>
       <h1 className="text-2xl font-semibold text-center mb-6">Profile</h1>
 
       {/* profile */}
@@ -44,8 +61,9 @@ function Profile() {
         <input
           type="text"
           placeholder="Enter new username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          name='username'
+          value={formdata.username}
+          onChange={handlechange}
           className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -56,33 +74,35 @@ function Profile() {
         <input
           type="password"
           placeholder="Current password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          name="password"
+          value={formdata.password}
+          onChange={handlechange}
           className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
           type="password"
           placeholder="New password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          name='newpassword'
+          value={formdata.newpassword}
+          onChange={handlechange}
           className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
           type="password"
           placeholder="Confirm new password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          name='cnewpassword'
+          value={formdata.cnewpassword}
+          onChange={handlechange}
           className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
+      <button type="submit" className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
         Update Profile
       </button>
-    </div>
+      <p className='text-red-700'>{err}</p>
+      <p className='text-green-600'>{confirmation}</p>
+    </form>
   );
 }
 

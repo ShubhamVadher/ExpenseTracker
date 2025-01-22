@@ -1,7 +1,25 @@
+import axios from "axios";
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
+  const navigate=useNavigate();
+  
+  const logout = async (e) => {
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return; // Exit if user cancels
+
+    try {
+      const response = await axios.get('/logout');
+      if (response.status === 200) {
+        navigate('/');
+      }
+    } catch (error) {
+      console.log(error.response.data.message);
+    }
+  };
+
+
   return (
     <div className="flex justify-between items-center p-4 bg-white text-black">
       {/*  Logo */}
@@ -23,7 +41,11 @@ const Navbar = () => {
         <Link to='/profile/*'>
         <img src="/path-to-profile-pic.jpg" alt="Profile" className="w-10 h-10 rounded-full" />
         </Link>
+        <button onClick={logout} className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors shadow-md logout-btn">
+          Logout
+        </button>
       </div>
+      
     </div>
   );
 };

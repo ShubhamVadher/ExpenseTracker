@@ -95,6 +95,43 @@ app.get('/dashboard', isloggedin, (req, res) => {
     return res.status(200).json({ user: req.user });
 });
 
+app.get('/logout',isloggedin,(req,res)=>{
+    res.clearCookie('token');
+    return res.status(200).json({message:"Logged out Successfully"});  
+})
+
+app.post('/editprofile', isloggedin, async (req, res) => {
+    const { username, password, newpassword, cnewpassword } = req.body;
+    console.log(req.body)
+
+    // Validate password presence
+    if (!password) {
+        return res.status(400).json({ message: "Current password is required" });
+    }
+
+    const result = await bcrypt.compare(password, req.user.password);
+    if (!result) {
+        return res.status(401).json({ message: "Incorrect current password" });
+    }
+
+    // Update password if requested
+    if (newpassword) {
+        if (newpassword !== cnewpassword) {
+            return res.status(400).json({ message: "New password and confirmation do not match" });
+        }
+        req.user.password = await bcrypt.hash(newpassword, 12);
+    }
+
+    // Update username if requested
+    if (username) {
+        req.user.name = username;
+    }
+
+    // Save the updated user
+    await req.user.save();
+    return res.status(200).json({ message: "Profile updated successfully" });
+});
+
 
 
 
