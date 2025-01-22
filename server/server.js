@@ -5,6 +5,7 @@ const bcrypt=require("bcrypt");
 const User=require('./models/user');
 const {otp}=require('./mailing/mail');
 const {tokengen}=require('./jwt/gentoken');
+const {isloggedin}=require('./middleware/middlesware');
 const jwt=require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const otp_check=process.env.OTP_CHECK
@@ -88,6 +89,11 @@ app.post('/signupotp',async(req,res)=>{
     }
 
 })
+
+app.get('/dashboard', isloggedin, (req, res) => {
+    // console.log("User data:", req.user); // Debugging line
+    return res.status(200).json({ user: req.user });
+});
 
 
 

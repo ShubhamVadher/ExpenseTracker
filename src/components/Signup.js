@@ -22,6 +22,7 @@ function Signup() {
             const response = await axios.post('/signup', FormData);
             if (response.status === 200) {
                 setshowotp(true);
+                // navigate('/dashboard')
             }
         } catch (error) {
             if (error.response && error.response.data.message) {
