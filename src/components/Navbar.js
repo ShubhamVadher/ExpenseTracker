@@ -29,7 +29,11 @@ const Navbar = () => {
 
       {/*buttins*/}
       <nav className="flex space-x-4">
-        <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Dues</button>
+      <Link to='/Dues'>
+        <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">
+           Dues
+        </button>
+        </Link>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Groups</button>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Savings</button>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Charts</button>
