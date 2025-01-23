@@ -8,6 +8,7 @@ const {tokengen}=require('./jwt/gentoken');
 const {isloggedin}=require('./middleware/middlesware');
 const jwt=require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const Dues=require('./models/dues');
 const otp_check=process.env.OTP_CHECK
 const app=express();
 app.use(express.json());
@@ -132,8 +133,48 @@ app.post('/editprofile', isloggedin, async (req, res) => {
     return res.status(200).json({ message: "Profile updated successfully" });
 });
 
+app.post('/adddues',isloggedin,async(req,res)=>{
+    const{ title,dueDate,amount,dueTo,currency,recurring}=req.body;
+    const currentDate = new Date();
+    const parsedDueDate = new Date(dueDate); // Make sure to parse the dueDate as a Date object
 
+    const myuser=await User.findOne({name:dueTo});
+    if(!myuser){
+        return res.status(400).json({ message: "User you want to pay is not found" });
+    }
+    if (parsedDueDate <= currentDate) {
+        return res.status(400).json({ message: "Due date must be in the future." });
+    }
+    const due=await Dues.create({
+        title,
+        due_by:req.user._id,
+        due_date:dueDate,
+        due_to:myuser._id,
+        amount,
+        currency,
+        recurring
 
+    })
+    req.user.dues.push(due._id);
+
+    // Populate the dues after adding
+    await req.user.save(); // Save the user after adding the due
+    await req.user.populate("dues"); // Populate the dues array
+
+    return res.status(200).json({ message: "Due Added successfully" });
+})
+
+app.get('/loaddues',isloggedin,async(req,res)=>{
+    const myuser=await User.findOne({_id:req.user._id}).populate('dues');
+    
+    if(myuser){
+        
+        return res.status(200).json({dues:myuser.dues})
+    }
+    else{
+        return res.status(400);
+    }
+})
 
 const port = process.env.PORT || 3000;
 app.listen(port,()=>{

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import './DuesPage.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const DuesPage = () => {
   const [formdata, setFormdata] = useState({
@@ -11,33 +13,54 @@ const DuesPage = () => {
     dueTo: '',
     currency: '',
     recurring: '',
+  
   });
 
+  const navigate=useNavigate();
+
   const [dues, setDues] = useState([]);
+  // <td>{due.title}</td>
+  //               <td>{due.dueTo}</td>
+  //               <td>{due.amount}</td>
+  //               <td>{due.dueDate}</td>
+  //               <td>{due.recurring}</td>
   const [currencies, setCurrencies] = useState([]);
 
-  function changeHandler(event) {
-    const { name, type, value, checked } = event.target;
-    setFormdata((prevdata) => ({
-      ...prevdata,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+  function changeHandler(e) {
+    const { name,value} = e.target;
+    setFormdata({
+      ...formdata,
+      [name]:value
+    })
   }
 
   const fetchCurrencies = async () => {
-    try {
-      const response = await fetch('https://api.exchangerate.host/latest?base=USD');
-      const data = await response.json();
-      const currencies = Object.keys(data.rates);
-      return currencies;
-    } catch (error) {
-      console.error('Error fetching currencies:', error);
-      return [];
+    try{
+      const currencies=await axios.get('https://v6.exchangerate-api.com/v6/49a24fac31e02f399d11aba4/codes');
+      setCurrencies(currencies.data.supported_codes);
+    }
+    catch(err){
+      console.log(err)
     }
   };
 
-  const addDue = () => {
-    setDues((prevDues) => [...prevDues, { ...formdata, id: Date.now() }]);
+  const addDue = async (e) => {
+    e.preventDefault();
+    try{
+      const response=await axios.post('/adddues',formdata);
+      if(response.status===200){
+        const {id}=response.data;
+        setDues((prevDues) => [
+          ...prevDues,
+          { ...formdata, id:id }, 
+        ]);
+        window.alert('Due Added Successfully');
+      }
+    }
+    catch(err){
+      
+      window.alert(err.response.data.message);
+    }
     setFormdata({
       title: '',
       dueDate: '',
@@ -45,11 +68,18 @@ const DuesPage = () => {
       dueTo: '',
       currency: '',
       recurring: '',
+
     });
   };
 
-  const deleteDue = (id) => {
-    setDues(dues.filter((due) => due.id !== id));
+  const deleteDue = async(id) => {
+    try{
+      const response=await axios.get('/deletedue');
+      if(response.status===200){
+        window.alert('Due removed')
+      }
+    }
+    catch(error){}
   };
 
   const editDue = (id) => {
@@ -61,17 +91,27 @@ const DuesPage = () => {
   };
 
   useEffect(() => {
-    const getCurrencies = async () => {
-      const fetchedCurrencies = await fetchCurrencies();
-      setCurrencies(fetchedCurrencies);
-    };
-    getCurrencies();
+    const getdues=async()=>{
+      try{
+        const response=await axios.get('/loaddues');
+        if(response.status===200){
+          setDues(response.data.dues);
+        }
+      }
+      catch (err) {
+        console.error(err); // Log the error for debugging
+        window.alert('Unable to load dues. Please try again later.');
+    }
+
+    }
+    getdues();
+    fetchCurrencies();
   }, []);
 
   return (
     <div className="page-container">
       <Navbar />
-      <div className="form-container">
+      <form className="form-container" onSubmit={addDue}>
         <h1 className="page-title">Bills and Dues</h1>
         <p className="page-description">Manage your bills and remind yourself about it</p>
         <fieldset className="form-fieldset">
@@ -80,6 +120,7 @@ const DuesPage = () => {
             <input
               className="form-input"
               type="text"
+              required
               placeholder="Enter Title"
               onChange={changeHandler}
               name="title"
@@ -90,6 +131,7 @@ const DuesPage = () => {
               className="form-input"
               type="date"
               id="dueDate"
+              required
               name="dueDate"
               value={formdata.dueDate}
               onChange={changeHandler}
@@ -101,6 +143,7 @@ const DuesPage = () => {
               type="text"
               id="amount"
               name="amount"
+              required
               value={formdata.amount}
               onChange={changeHandler}
             />
@@ -111,6 +154,7 @@ const DuesPage = () => {
               type="text"
               id="dueTo"
               name="dueTo"
+              required
               value={formdata.dueTo}
               onChange={changeHandler}
             />
@@ -119,13 +163,14 @@ const DuesPage = () => {
               className="form-select"
               id="currency"
               name="currency"
+              required
               value={formdata.currency}
               onChange={changeHandler}
             >
               <option value="">Select Currency</option>
-              {currencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
+              {currencies.map(([code,name]) => (
+                <option key={code} value={code}>
+                  {code}: {name}
                 </option>
               ))}
             </select>
@@ -144,13 +189,15 @@ const DuesPage = () => {
               <option value="Monthly">Monthly</option>
             </select>
           </form>
-          <button type="button" className="form-submit-button" onClick={addDue}>
+          <button type="submit" className="form-submit-button">
             Add Due
           </button>
         </fieldset>
 
-        {/* Dues Table */}
-        <h2>Your Dues</h2>
+        
+      </form>
+      {/* Dues Table */}
+      <h2>Your Dues</h2>
         <table className="dues-table">
           <thead>
             <tr>
@@ -184,7 +231,6 @@ const DuesPage = () => {
             ))}
           </tbody>
         </table>
-      </div>
     </div>
   );
 };

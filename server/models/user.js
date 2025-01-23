@@ -23,8 +23,14 @@ const userSchema=mongoose.Schema({
         required:true,
         
         minlength:7
-    }
+    },
+    dues:[
+            {
+                type:mongoose.Schema.Types.ObjectId,
+                ref:"due"
+            }
+    ]
 
 })
 
-module.exports=mongoose.model('exprenssuser',userSchema);
+module.exports=mongoose.model('user',userSchema);
