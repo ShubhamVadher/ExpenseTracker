@@ -3,7 +3,7 @@ const mongoose=require('mongoose');
 const duesSchema=mongoose.Schema({
     due_by:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"exprenssuser"
+        ref:"user"
     },
     title:{
         type:String,
@@ -19,7 +19,7 @@ const duesSchema=mongoose.Schema({
     },
     due_to:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"exprenssuser"
+        ref:"user"
     },
     amount:{
         type:Number,

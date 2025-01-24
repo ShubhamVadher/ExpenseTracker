@@ -15,15 +15,12 @@ const DuesPage = () => {
     recurring: '',
   
   });
-
+  const [reload, setReload] = useState(false);
   const navigate=useNavigate();
-
+  const [err,seterr]=useState('');
+  const[success,setsuccess]=useState('');
   const [dues, setDues] = useState([]);
-  // <td>{due.title}</td>
-  //               <td>{due.dueTo}</td>
-  //               <td>{due.amount}</td>
-  //               <td>{due.dueDate}</td>
-  //               <td>{due.recurring}</td>
+ 
   const [currencies, setCurrencies] = useState([]);
 
   function changeHandler(e) {
@@ -54,12 +51,19 @@ const DuesPage = () => {
           ...prevDues,
           { ...formdata, id:id }, 
         ]);
-        window.alert('Due Added Successfully');
+        setsuccess('Due added to your account')
+        seterr('');
+        const updatedDues = await axios.get('/loaddues');
+        if (updatedDues.status === 200) {
+          setDues(updatedDues.data.dues); // Update dues state with fresh data
+        }
+        // setReload((prev) => !prev);
       }
     }
     catch(err){
       
-      window.alert(err.response.data.message);
+      seterr(err.response.data.message);
+      setsuccess('');
     }
     setFormdata({
       title: '',
@@ -72,22 +76,30 @@ const DuesPage = () => {
     });
   };
 
-  const deleteDue = async(id) => {
-    try{
-      const response=await axios.get('/deletedue');
-      if(response.status===200){
-        window.alert('Due removed')
+  const deleteDue = async (id) => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this due?');
+  
+    if (isConfirmed) {
+      try {
+        const response = await axios.get(`/deletedue/${id}`);
+        if (response.status === 200) {
+          
+          const updatedDues = await axios.get('/loaddues');
+          if (updatedDues.status === 200) {
+            setDues(updatedDues.data.dues); // Update dues state with fresh data
+          }
+        }
+      } catch (error) {
+        window.alert('Could not delete the due. Please try again.');
       }
     }
-    catch(error){}
+    
   };
+  
 
-  const editDue = (id) => {
-    const dueToEdit = dues.find((due) => due.id === id);
-    if (dueToEdit) {
-      setFormdata(dueToEdit);
-      deleteDue(id);
-    }
+  const editDue = async(id) => {
+    
+    navigate(`/editdues/${id}`);
   };
 
   useEffect(() => {
@@ -174,6 +186,8 @@ const DuesPage = () => {
                 </option>
               ))}
             </select>
+            
+
 
             <label className="form-label" htmlFor="recurring">Recurring: </label>
             <select
@@ -194,7 +208,8 @@ const DuesPage = () => {
           </button>
         </fieldset>
 
-        
+        <p>{err}</p>
+        <p>{success}</p>
       </form>
       {/* Dues Table */}
       <h2>Your Dues</h2>
@@ -204,6 +219,7 @@ const DuesPage = () => {
               <th>Title</th>
               <th>Due To</th>
               <th>Amount</th>
+              <th>Currency</th>
               <th>Due Date</th>
               <th>Recurring</th>
               <th>Actions</th>
@@ -211,20 +227,21 @@ const DuesPage = () => {
           </thead>
           <tbody>
             {dues.map((due) => (
-              <tr key={due.id}>
+              <tr key={due._id}>
                 <td>{due.title}</td>
-                <td>{due.dueTo}</td>
+                <td>{due.due_to?.name || 'Unknown'}</td>
                 <td>{due.amount}</td>
-                <td>{due.dueDate}</td>
+                <td>{due.currency}</td>
+                <td>{new Date(due.due_date).toLocaleDateString('en-GB')}</td>
                 <td>{due.recurring}</td>
                 <td>
                   <FaEdit
                     className="icon edit-icon"
-                    onClick={() => editDue(due.id)}
+                    onClick={() => editDue(due._id)}
                   />
                   <FaTrash
                     className="icon delete-icon"
-                    onClick={() => deleteDue(due.id)}
+                    onClick={() => deleteDue(due._id)}
                   />
                 </td>
               </tr>

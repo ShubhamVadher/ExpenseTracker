@@ -165,7 +165,15 @@ app.post('/adddues',isloggedin,async(req,res)=>{
 })
 
 app.get('/loaddues',isloggedin,async(req,res)=>{
-    const myuser=await User.findOne({_id:req.user._id}).populate('dues');
+    const myuser = await User.findOne({ _id: req.user._id })
+            .populate({
+                path: 'dues',
+                populate: {
+                    path: 'due_to',
+                    model: 'user' 
+                }
+            });
+    
     
     if(myuser){
         
@@ -175,6 +183,95 @@ app.get('/loaddues',isloggedin,async(req,res)=>{
         return res.status(400);
     }
 })
+
+app.post('/edit/:id',isloggedin,async(req,res)=>{
+    const id=req.params.id;
+    const{ title,dueDate,amount,dueTo,currency,recurring}=req.body;
+    const currentDate = new Date();
+    const parsedDueDate = new Date(dueDate); // Make sure to parse the dueDate as a Date object
+    const myuser=await User.findOne({name:dueTo});
+    if(!myuser){
+        return res.status(400).json({ message: "User you want to pay is not found" });
+    }
+    if (parsedDueDate <= currentDate) {
+        return res.status(400).json({ message: "Due date must be in the future." });
+    }
+    const due=await Dues.findOneAndUpdate({_id:id},{
+        title,
+        
+        due_date:dueDate,
+        due_to:myuser._id,
+        amount,
+        currency,
+        recurring
+
+    });
+    await due.save();
+    if(!due){
+        return res.status(404).json({message:'Due Not Found'});
+    }
+    return res.status(200).json({message:"Updated successfully"});
+
+})
+
+// const [formdata, setformdata] = useState({
+//         title: '',
+//         dueDate: '',
+//         amount: '',
+//         dueTo: '',
+//         currency: '',
+//         recurring: '',
+      
+//     });
+
+app.get('/getdue/:id', isloggedin, async (req, res) => {
+    const id = req.params.id;
+    try {
+      const due = await Dues.findOne({ _id: id }).populate('due_to'); // Populate due_to if it's a reference
+      if (!due) {
+        return res.status(400).json({ message: "No due found" });
+      } else {
+        return res.status(200).json({
+          title: due.title,
+          dueDate: due.due_date,
+          amount: due.amount,
+          dueTo: due.due_to?.name || "",
+          currency: due.currency,
+          recurring: due.recurring,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "An error occurred" });
+    }
+  });
+
+  app.get('/deletedue/:id', isloggedin, async (req, res) => {
+    const id = req.params.id;
+    try {
+      // Delete the due from the Dues collection
+      const due = await Dues.findOneAndDelete({ _id: id });
+  
+      if (due) {
+        // Get the user ID from the request (assuming req.user is set by the authentication middleware)
+        const userId = req.user._id;
+  
+        // Remove the due ID from the user's dues array
+        await User.updateOne(
+          { _id: userId }, // Match the user
+          { $pull: { dues: id } } // Remove the due ID from the dues array
+        );
+  
+        return res.status(200).json({ message: 'Due deleted successfully.' });
+      } else {
+        return res.status(404).json({ message: 'Due not found.' });
+      }
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'An error occurred while deleting the due.' });
+    }
+  });
+  
 
 const port = process.env.PORT || 3000;
 app.listen(port,()=>{
