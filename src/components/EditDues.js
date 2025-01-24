@@ -29,7 +29,7 @@ function EditDues() {
     }
     const fetchCurrencies = async () => {
         try{
-          const currencies=await axios.get('https://v6.exchangerate-api.com/v6/49a24fac31e02f399d11aba4/codes');
+          const currencies=await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.REACT_APP_API_KEY_CURRENCY}/codes`);
           setCurrencies(currencies.data.supported_codes);
         }
         catch(err){

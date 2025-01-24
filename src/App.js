@@ -8,6 +8,7 @@ import {Routes,Route} from 'react-router-dom'
 import Dashboard from './components/Dashboard';
 import DuesPage from './components/DuesPage';
 import EditDues from './components/EditDues';
+import Stocks from './components/Stocks';
 function App() {
   return (
     <>
@@ -18,6 +19,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard/>}/>
         <Route path="/Dues" element={<DuesPage></DuesPage>}></Route>
         <Route path='/editdues/:id' element={<EditDues/>}></Route>
+        <Route path='/stocks' element={<Stocks/>}></Route>
       </Routes>
     </>
   );

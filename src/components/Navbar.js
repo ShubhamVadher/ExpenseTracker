@@ -33,11 +33,15 @@ const Navbar = () => {
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">
            Dues
         </button>
-        </Link>
+      </Link>
+      
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Groups</button>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Savings</button>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Charts</button>
-        <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Stocks</button>
+        <Link to='/stocks'>
+          <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Stocks</button>
+        </Link>
+        
       </nav>
 
       {/*profile pic */}
