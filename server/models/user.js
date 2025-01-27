@@ -29,6 +29,18 @@ const userSchema=mongoose.Schema({
                 type:mongoose.Schema.Types.ObjectId,
                 ref:"due"
             }
+    ],
+    groups:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"group"
+        }
+    ],
+    transactions:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"transactions"
+        }
     ]
 
 })

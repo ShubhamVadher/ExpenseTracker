@@ -8,7 +8,10 @@ const {tokengen}=require('./jwt/gentoken');
 const {isloggedin}=require('./middleware/middlesware');
 const jwt=require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const Transection=require('./models/transection');
 const Dues=require('./models/dues');
+const Group=require('./models/group');
+const transection = require('./models/transection');
 const otp_check=process.env.OTP_CHECK
 const app=express();
 app.use(express.json());
@@ -214,15 +217,6 @@ app.post('/edit/:id',isloggedin,async(req,res)=>{
 
 })
 
-// const [formdata, setformdata] = useState({
-//         title: '',
-//         dueDate: '',
-//         amount: '',
-//         dueTo: '',
-//         currency: '',
-//         recurring: '',
-      
-//     });
 
 app.get('/getdue/:id', isloggedin, async (req, res) => {
     const id = req.params.id;
@@ -270,8 +264,101 @@ app.get('/getdue/:id', isloggedin, async (req, res) => {
       console.error(err);
       return res.status(500).json({ message: 'An error occurred while deleting the due.' });
     }
-  });
-  
+});
+
+app.post('/addtransection',isloggedin,async(req,res)=>{
+    const{type,currency,amount,catagory,date}=req.body;
+    console.log(req.body);
+    if(!type||!currency||!amount||!catagory||!date){
+        return res.status(404).json({message:"Make sure to fill all the fields"});
+    }
+    const mytrans=await Transection.create({transection_user:req.user._id,transection_type:type,currency,amount,catagory,date});
+    if(mytrans){
+        req.user.transactions.push(mytrans._id);
+        await req.user.save();
+        return res.status(200).json({message:"transection added successfully"});
+    }
+    else{
+        return res.status(400).json({message:"Something went wrong"});
+    }
+
+})
+
+
+
+// GET /gettransections - Fetch all transactions for the logged-in user
+app.get('/gettransections', isloggedin, async (req, res) => {
+  try {
+    // Populate transactions associated with the logged-in user
+    const user = await req.user.populate('transactions');
+    if (!user.transactions || user.transactions.length === 0) {
+      return res.status(404).json({ message: 'No transactions found.' });
+    }
+
+    // Return the populated transactions
+    return res.status(200).json({ transactions: user.transactions });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+
+
+//creating group
+app.post('/creategroup',isloggedin,async(req,res)=>{
+    try{
+        const{grp_name}=req.body;
+        const my_group=await Group.create({grp_name,grp_admin:req.user._id});
+        req.user.groups.push(my_group._id);
+        my_group.grp_members.push(req.user._id);
+        await my_group.save();
+        await req.user.save();
+        return res.status(200).json({message:"All good"});
+    }
+    catch(err){
+        console.log(err);
+        return res.status(400).json({message:"Something went Wrong"});
+    }
+
+
+})
+
+//adding members
+app.post('/addmember/:id', isloggedin, async (req, res) => {
+    try {
+        // Find the group by ID
+        const mygrp = await Group.findOne({ _id: req.params.id });
+        const { member_id } = req.body;
+        const user=await User.findOne({_id:member_id});
+        if(!user){
+            return res.status(404).json({ message: "Please check the member id, No such member exist" });
+        }   
+        // Check if group exists
+        if (!mygrp) {
+            return res.status(404).json({ message: "Group not found" });
+        }
+
+        // Check if the member is already added
+        if (mygrp.grp_members.includes(member_id)) {
+            return res.status(400).json({ message: "Member is already in the group" });
+        }
+
+        // Add the member to the group
+        mygrp.grp_members.push(member_id);
+        user.groups.push(mygrp);
+        await user.save();
+        await mygrp.save();
+        
+        return res.status(200).json({ message: "Member added successfully", group: mygrp });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+
 
 const port = process.env.PORT || 3000;
 app.listen(port,()=>{

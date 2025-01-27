@@ -7,10 +7,12 @@ function Dashboard() {
   const navigate = useNavigate();
   const [userName, setUsername] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [traErr,setTraErr]=useState('');
   const [formData, setFormData] = useState({
     categories: "",
     startdate: "",
     enddate: "",
+
     Transaction: "",
     Currency: "",
     Amount: "",
@@ -18,6 +20,49 @@ function Dashboard() {
     Description: "",
     Date: "",
   });
+
+  const[transactions,settrasaction]=useState([]);
+  
+  const gettrasections = async () => {
+    try {
+      const response = await axios.get('/gettransections');
+      if (response.status === 200) {
+        console.log('Transactions:', response.data.transactions); // Debugging
+        settrasaction(response.data.transactions);
+      }
+    } catch (err) {
+      console.log(err.response?.data?.message || 'Error fetching transactions');
+    }
+  };
+
+
+  const [currencies, setCurrencies] = useState([]);
+  const fetchCurrencies = async () => {
+    try{
+      const currencies=await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.REACT_APP_API_KEY_CURRENCY}/codes`);
+      setCurrencies(currencies.data.supported_codes);
+    }
+    catch(err){
+      console.log(err)
+    }
+  };
+  //adding a transection
+  const addTransection=async(e)=>{
+    e.preventDefault();
+    try{
+      const response=await axios.post('/addtransection',{type:formData.Transaction,currency:formData.Currency,amount:formData.Amount,catagory:formData.Category,date:formData.Date})
+      if(response.status===200){
+        //more to add here
+        setTraErr('');
+        gettrasections();
+        setIsModalOpen(!isModalOpen);
+      }
+    }
+    catch(err){
+      console.log(err);
+      setTraErr(err.response.data.message);
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -32,7 +77,10 @@ function Dashboard() {
       }
     }
     fetchData();
+    fetchCurrencies();
+    gettrasections();
   }, [navigate]);
+
 
   const changeHandler = (event) => {
     const { name, type, value, checked } = event.target;
@@ -128,6 +176,50 @@ function Dashboard() {
             Export CSV
           </button>
         </div>
+        <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto p-4">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Transactions</h1>
+
+      <div className="min-h-screen bg-gray-100">
+      
+
+        {transactions.length === 0 ? (
+          <p className="text-gray-600">No transactions to display</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {transactions.map((transaction, index) => (
+              <div
+                key={index}
+                className="bg-white shadow-md rounded-md p-4 border border-gray-200"
+              >
+                <h2 className="text-lg font-bold text-gray-800 mb-2">
+                  {transaction.transection_type}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Currency:</span>{" "}
+                  {transaction.currency}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Amount:</span> 
+                  {transaction.amount}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Category:</span>{" "}
+                  {transaction.catagory}
+                </p>
+                
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Date:</span>{" "}
+                  {new Date(transaction.date).toLocaleDateString("en-GB")} {/* en-GB for dd/mm/yyyy */}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+      
+    </div>
 
         <button
           className="fixed bottom-4 right-4 bg-blue-800 text-white text-2xl rounded-full p-3 shadow-md"
@@ -140,7 +232,7 @@ function Dashboard() {
           <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-96">
               <h1 className="text-xl font-bold mb-4">Add Transaction</h1>
-              <form>
+              <form onSubmit={addTransection}>
                 <label htmlFor="Transaction" className="block mb-2">
                   Transaction Type
                 </label>
@@ -159,13 +251,19 @@ function Dashboard() {
                   Currency
                 </label>
                 <select
+                  className="form-select"
+                  id="currency"
                   name="Currency"
-                  id="Currency"
+                  required
                   value={formData.Currency}
                   onChange={changeHandler}
-                  className="block w-full border-gray-300 rounded-md mb-4"
                 >
-                  <option value="Select">Select</option>
+                  <option value="">Select Currency</option>
+                  {currencies.map(([code,name]) => (
+                    <option key={code} value={code}>
+                      {code}: {name}
+                    </option>
+                  ))}
                 </select>
 
                 <label htmlFor="Amount" className="block mb-2">
@@ -229,12 +327,14 @@ function Dashboard() {
                   >
                     Save
                   </button>
+                  <p>{traErr}</p>
                 </div>
               </form>
             </div>
           </div>
         )}
       </div>
+
     </div>
   );
 }
