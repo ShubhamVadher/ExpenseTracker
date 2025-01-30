@@ -34,8 +34,9 @@ const Navbar = () => {
            Dues
         </button>
       </Link>
-      
+      <Link to='/Groups'>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Groups</button>
+      </Link>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Savings</button>
         <button className="px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">Charts</button>
         <Link to='/stocks'>

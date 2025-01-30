@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import DuesPage from './components/DuesPage';
 import EditDues from './components/EditDues';
 import Stocks from './components/Stocks';
+import Groups from './components/Groups';
 function App() {
   return (
     <>
@@ -20,6 +21,7 @@ function App() {
         <Route path="/Dues" element={<DuesPage></DuesPage>}></Route>
         <Route path='/editdues/:id' element={<EditDues/>}></Route>
         <Route path='/stocks' element={<Stocks/>}></Route>
+        <Route path='/groups' element={<Groups/>}></Route>
       </Routes>
     </>
   );

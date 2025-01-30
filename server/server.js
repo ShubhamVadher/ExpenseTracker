@@ -356,7 +356,20 @@ app.post('/addmember/:id', isloggedin, async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 });
+//show groups
+app.get('/getgroups',isloggedin,async(req,res)=>{
+    const myuser=await req.user.populate('groups');
+    if(myuser){
+        res.status(200).json({Groups:myuser.groups});
+    }
+    else{
+        res.status(400).json({messge:"You are either not part of any groups or There is unxpected error occuring"});
+    }
+})
 
+app.get('/getuser',isloggedin,async(req,res)=>{
+    return res.status(200).json({user:req.user});
+})
 
 
 
