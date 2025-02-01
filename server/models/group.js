@@ -13,6 +13,12 @@ const groupSchema=mongoose.Schema({
             type:mongoose.Schema.Types.ObjectId,
             ref:"user"
         }
+    ],
+    dues:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'groupDues'
+        }
     ]
 })
 module.exports=mongoose.model('group',groupSchema);

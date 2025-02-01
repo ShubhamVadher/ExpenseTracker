@@ -11,7 +11,7 @@ const cookieParser = require('cookie-parser');
 const Transection=require('./models/transection');
 const Dues=require('./models/dues');
 const Group=require('./models/group');
-const transection = require('./models/transection');
+const GroupDue=require('./models/groupdues');
 const otp_check=process.env.OTP_CHECK
 const app=express();
 app.use(express.json());
@@ -371,6 +371,46 @@ app.get('/getuser',isloggedin,async(req,res)=>{
     return res.status(200).json({user:req.user});
 })
 
+app.get('/getgroup/:id',isloggedin,async(req,res)=>{
+    const group=await Group.findOne({_id:req.params.id});
+    await group.populate("grp_admin");
+    await group.populate("grp_members");
+    await group.save();
+    if(group){
+        return res.status(200).json({group:group});
+    }
+    else{
+        return res.status(400).json({message:"Unexpected Error Occured"});
+    }
+})
+
+
+app.post('/addgrpdue/:id',isloggedin,async(req,res)=>{
+    const id=req.params.id;
+    const {dueAmount,name,description,members}=req.body;
+    const group=await Group.findOne({_id:id});
+    if(group){
+        const due=await GroupDue.create({group:group._id,dueAmount,name,description,members});
+        group.dues.push(due._id);
+        await group.save();
+        return res.status(200).json({message:"Dues added in the group"});
+    }
+    else{
+        res.status(400).json({message:"Something went Wrong"});
+    }
+})
+
+app.get('/getgrpdue/:id',isloggedin,async(req,res)=>{
+    const id=req.params.id;
+    const group=await Group.findOne({_id:id}).populate('dues');
+    if(group){
+        return res.status(200).json({dues:group.dues});
+
+    }
+    else{
+        return res.status(400).json({message:"You either dont have any dues or there is an unexpected error"});
+    }
+})
 
 
 const port = process.env.PORT || 3000;
