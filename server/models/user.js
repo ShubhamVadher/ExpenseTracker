@@ -41,7 +41,20 @@ const userSchema=mongoose.Schema({
             type:mongoose.Schema.Types.ObjectId,
             ref:"transactions"
         }
-    ]
+    ],
+    income:{
+        type:Number,
+        default:0
+    },
+    balance:{
+        type:Number,
+        default:0
+    },
+    expense:{
+        type:Number,
+        default:0
+    }
+
 
 })
 

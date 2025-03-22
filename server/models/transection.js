@@ -10,11 +10,16 @@ const transectionSchema=mongoose.Schema({
     },
     currency:{
         type:String,
-        required:true
+        required:true,
+        default:"INR"
     },
     amount:{
         type:Number,
         required:true
+    },
+    description:{
+        type:String,
+        default:"No Description"
     },
     catagory:{
         type:String,

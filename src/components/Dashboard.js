@@ -5,15 +5,14 @@ import axios from "axios";
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [userName, setUsername] = useState("");
+  const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [traErr,setTraErr]=useState('');
   const [formData, setFormData] = useState({
-    categories: "",
-    startdate: "",
-    enddate: "",
-
-    Transaction: "",
+    categories: "",//for filter
+    startdate: "",//for filter
+    enddate: "",//for filter
+    Transaction: "Expense",
     Currency: "",
     Amount: "",
     Category: "",
@@ -37,20 +36,20 @@ function Dashboard() {
 
 
   const [currencies, setCurrencies] = useState([]);
-  const fetchCurrencies = async () => {
-    try{
-      const currencies=await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.REACT_APP_API_KEY_CURRENCY}/codes`);
-      setCurrencies(currencies.data.supported_codes);
-    }
-    catch(err){
-      console.log(err)
-    }
-  };
+  // const fetchCurrencies = async () => {
+  //   try{
+  //     const currencies=await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.REACT_APP_API_KEY_CURRENCY}/codes`);
+  //     setCurrencies(currencies.data.supported_codes);
+  //   }
+  //   catch(err){
+  //     console.log(err)
+  //   }
+  // };
   //adding a transection
   const addTransection=async(e)=>{
     e.preventDefault();
     try{
-      const response=await axios.post('/addtransection',{type:formData.Transaction,currency:formData.Currency,amount:formData.Amount,catagory:formData.Category,date:formData.Date})
+      const response=await axios.post('/addtransection',{type:formData.Transaction,currency:formData.Currency,amount:formData.Amount,catagory:formData.Category,date:formData.Date,description:formData.Description})
       if(response.status===200){
         //more to add here
         setTraErr('');
@@ -69,7 +68,7 @@ function Dashboard() {
       try {
         const response = await axios.get("/dashboard");
         if (response.status === 200) {
-          setUsername(response.data.user.name);
+          setUser(response.data.user);
         }
       } catch (error) {
         console.error(error);
@@ -77,7 +76,7 @@ function Dashboard() {
       }
     }
     fetchData();
-    fetchCurrencies();
+    // fetchCurrencies();
     gettrasections();
   }, [navigate]);
 
@@ -94,29 +93,97 @@ function Dashboard() {
     setIsModalOpen(!isModalOpen);
   };
 
+  const filterSubmit = async (e) => {
+    e.preventDefault();
+    try {
+        
+        
+      const response = await axios.get('/applyfilter', {
+        params: {
+            category: formData.categories,
+            startdate: formData.startdate,
+            enddate: formData.enddate
+        }
+    });
+        
+        if (response.status === 200) {
+            console.log("Filter API Response:", response.data);
+            settrasaction(response.data.transactions); // Typo left as per your request
+        }
+    } catch (err) {
+        console.log(err.response?.data?.message || 'Error fetching transactions');
+    }
+};
+
+//dowloading CSV file
+const downloadCSV = () => {
+  if (!transactions || transactions.length === 0) {
+      alert("No transactions to download!");
+      return;
+  }
+
+  // Format transactions (remove unwanted fields, format date, and reorder columns)
+  const formattedTransactions = transactions.map(({ _id, __v, transection_user, date, catagory, transection_type, amount, description }) => ({
+      Date: new Date(date).toLocaleDateString("en-GB"), // Formats as dd/mm/yyyy
+      Category: catagory,
+      "Transaction Type": transection_type,
+      Amount: amount,
+      Description: description
+  }));
+
+  // Convert array to CSV format
+  const headers = Object.keys(formattedTransactions[0]).join(","); // Column headers
+  const csvRows = [headers];
+
+  formattedTransactions.forEach(transaction => {
+      const values = Object.values(transaction).map(value =>
+          typeof value === "string" ? `"${value}"` : value
+      );
+      csvRows.push(values.join(","));
+  });
+
+  // Create CSV content
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+
+  // Create and trigger the download link
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "transactions.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+
+
+
+
+
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
 
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Welcome, {userName}!
+        Welcome, {user?.name || "Guest"}!
         </h1>
         <p className="text-gray-600 mb-6">Let's add some transactions!</p>
 
         <div className="flex justify-between items-center mb-6">
           <button className="px-4 py-2 bg-blue-800 text-white rounded-md">
-            Income ₹0
+            Income ₹{user?.income||0}
           </button>
           <button className="px-4 py-2 bg-blue-800 text-white rounded-md">
-            Balance ₹0
+            Balance ₹{user?.balance||0}
           </button>
           <button className="px-4 py-2 bg-blue-800 text-white rounded-md">
-            Expense ₹0
+            Expense ₹{user?.expense||0}
           </button>
         </div>
 
-        <form className="bg-white p-6 rounded-md shadow-md grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <form className="bg-white p-6 rounded-md shadow-md grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" onSubmit={filterSubmit}>
           <div>
             <label
               htmlFor="categories"
@@ -131,7 +198,19 @@ function Dashboard() {
               onChange={changeHandler}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             >
-              <option value="Select All">All Categories</option>
+                  <option value="ALL">ALL</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Rental Income">Rental Income</option>
+                  <option value="Bonuses">Bonuses</option>
+                  <option value="Rent/Mortgage">Rent/Mortgage</option>
+                  <option value="Utilities">Utilities (Electricity, Water, Gas, Internet)</option>
+                  <option value="Food & Groceries">Food & Groceries</option>
+                  <option value="Transportation">Transportation (Fuel, Public Transport, Ride-Sharing)</option>
+                  <option value="Clothing & Accessories">Clothing & Accessories</option>
+                  <option value="Healthcare & Medical Bills">Healthcare & Medical Bills</option>
+                  <option value="Entertainment">Entertainment (Movies, Games, Subscriptions)</option>
+                  <option value="Personal Care">Personal Care (Salon, Spa, Gym)</option>
+                  <option value="Others">Others</option>
             </select>
           </div>
 
@@ -166,13 +245,14 @@ function Dashboard() {
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>
+          <button type="submit" className="px-4 py-2 bg-blue-800 text-white rounded-md">
+            Apply Filter
+          </button>
         </form>
 
         <div className="mt-4 flex justify-end gap-4">
-          <button className="px-4 py-2 bg-blue-800 text-white rounded-md">
-            Apply Filter
-          </button>
-          <button className="px-4 py-2 bg-blue-800 text-white rounded-md">
+          
+          <button className="px-4 py-2 bg-blue-800 text-white rounded-md" onClick={downloadCSV}>
             Export CSV
           </button>
         </div>
@@ -243,6 +323,7 @@ function Dashboard() {
                   onChange={changeHandler}
                   className="block w-full border-gray-300 rounded-md mb-4"
                 >
+                  <option value="nothing">Select Type</option>
                   <option value="Expense">Expense</option>
                   <option value="Income">Income</option>
                 </select>
@@ -250,28 +331,37 @@ function Dashboard() {
                 <label htmlFor="Currency" className="block mb-2">
                   Currency
                 </label>
-                <select
-                  className="form-select"
-                  id="currency"
-                  name="Currency"
-                  required
-                  value={formData.Currency}
-                  onChange={changeHandler}
-                >
-                  <option value="">Select Currency</option>
-                  {currencies.map(([code,name]) => (
-                    <option key={code} value={code}>
-                      {code}: {name}
-                    </option>
-                  ))}
-                </select>
+                
+                
+                  <select
+                    className="form-select"
+                    id="currency"
+                    name="Currency"
+                    required
+                    value={formData.Currency}
+                    onChange={changeHandler}
+                  >
+                    <option value="">Select Currency</option>
+
+                    {currencies.length>0?currencies.map(([code, name]) => (
+                      <option key={code} value={code}>
+                        {code}: {name}
+                      </option>
+                    )):<option >INR</option>
+                        
+                    }
+                  </select>
+                
+                  
+                
+
 
                 <label htmlFor="Amount" className="block mb-2">
                   Amount
                 </label>
                 <input
                   placeholder="Enter amount"
-                  type="text"
+                  type="Number"
                   name="Amount"
                   value={formData.Amount}
                   onChange={changeHandler}
@@ -281,14 +371,27 @@ function Dashboard() {
                 <label htmlFor="Category" className="block mb-2">
                   Category
                 </label>
-                <input
-                  placeholder="Enter category"
-                  type="text"
+                <select
                   name="Category"
+                  id="Category"
                   value={formData.Category}
                   onChange={changeHandler}
-                  className="block w-full border-gray-300 rounded-md mb-4 placeholder:border-gray-300 placeholder:rounded-md placeholder:shadow-sm"
-                />
+                  className="block w-full border-gray-300 rounded-md mb-4"
+                >
+                  <option value="">Select a Category</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Rental Income">Rental Income</option>
+                  <option value="Bonuses">Bonuses</option>
+                  <option value="Rent/Mortgage">Rent/Mortgage</option>
+                  <option value="Utilities">Utilities (Electricity, Water, Gas, Internet)</option>
+                  <option value="Food & Groceries">Food & Groceries</option>
+                  <option value="Transportation">Transportation (Fuel, Public Transport, Ride-Sharing)</option>
+                  <option value="Clothing & Accessories">Clothing & Accessories</option>
+                  <option value="Healthcare & Medical Bills">Healthcare & Medical Bills</option>
+                  <option value="Entertainment">Entertainment (Movies, Games, Subscriptions)</option>
+                  <option value="Personal Care">Personal Care (Salon, Spa, Gym)</option>
+                  <option value="Others">Others</option>
+                </select>
 
                 <label htmlFor="Description" className="block mb-2">
                   Description

@@ -266,24 +266,216 @@ app.get('/getdue/:id', isloggedin, async (req, res) => {
     }
 });
 
-app.post('/addtransection',isloggedin,async(req,res)=>{
-    const{type,currency,amount,catagory,date}=req.body;
-    console.log(req.body);
-    if(!type||!currency||!amount||!catagory||!date){
-        return res.status(404).json({message:"Make sure to fill all the fields"});
+app.post('/addtransection', isloggedin, async (req, res) => {
+    const { type, currency, amount, catagory, date,description } = req.body;
+    
+    console.log("Amount received:", amount, "Type:", typeof amount); // Debugging
+    
+    if (!type || !currency || !amount || !catagory || !date) {
+        return res.status(400).json({ message: "Make sure to fill all the fields" });
     }
-    const mytrans=await Transection.create({transection_user:req.user._id,transection_type:type,currency,amount,catagory,date});
-    if(mytrans){
+
+    const numericAmount = Number(amount); // Convert amount to a number
+
+    
+
+    const mytrans = await Transection.create({
+        transection_user: req.user._id,
+        transection_type: type,
+        currency,
+        amount: numericAmount,
+        catagory,
+        date,
+        description
+    });
+
+    if (mytrans) {
         req.user.transactions.push(mytrans._id);
+
+        if (type === "Expense") {
+            req.user.balance -= numericAmount;
+            req.user.expense += numericAmount;
+        } else {
+            req.user.balance += numericAmount;
+            req.user.income += numericAmount;
+        }
+
         await req.user.save();
-        return res.status(200).json({message:"transection added successfully"});
+        return res.status(200).json({ message: "Transaction added successfully" });
+    } else {
+        return res.status(400).json({ message: "Something went wrong" });
     }
-    else{
-        return res.status(400).json({message:"Something went wrong"});
+});
+
+
+//applying filter on trasections
+
+app.get('/applyfilter', isloggedin, async (req, res) => {
+    const { category, startdate, enddate } = req.query;
+    console.log(req.query);
+    //no start only end
+    if(!startdate&&enddate){
+        if(category==="ALL"||category===""){
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    
+                    date: { 
+                        
+                        $lte: new Date(enddate ) // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }    
+        else{
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    catagory: category,
+                    date: { 
+                         
+                        $lte: new Date(enddate ) // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }
+    }
+    //if start n but no end
+    if(startdate&&!enddate){
+        if(category==="ALL"||category===""){
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    
+                    date: { 
+                        $gte: new Date(startdate)
+                         // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }    
+        else{
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    catagory: category,
+                    date: { 
+                        $gte: new Date(startdate), 
+                         // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }
     }
 
-})
+    if(!startdate&&!enddate){
+        if(category==="ALL"||category===""){
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    
+                    date: { 
+                        
+                         // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }    
+        else{
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    catagory: category,
+                    date: { 
+                        
+                         // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }
+    }
 
+    if(startdate&&enddate){
+        if(category==="ALL"||category===""){
+            try{
+                const transactions = await Transection.find({
+                    transection_user: req.user._id,
+                    
+                    date: { 
+                        $gte: new Date(startdate), 
+                        $lte: new Date(enddate ) // Include full end day
+                    }
+                });
+        
+                return res.status(200).json({ transactions });
+            }
+            catch (error) {
+                console.error("Error:", error);
+                return res.status(500).json({ message: "Server error while filtering transactions" });
+                
+            }
+        }
+    
+        try {
+            const transactions = await Transection.find({
+                transection_user: req.user._id,
+                catagory: category,
+                date: { 
+                    $gte: new Date(startdate), 
+                    $lte: new Date(enddate ) // Include full end day
+                }
+            });
+    
+            return res.status(200).json({ transactions });
+        } catch (error) {
+            console.error("Error:", error);
+            res.status(500).json({ message: "Server error while filtering transactions" });
+        }
+    }
+    
+});
 
 
 // GET /gettransections - Fetch all transactions for the logged-in user
